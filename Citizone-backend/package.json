@@ -1,7 +1,7 @@
 {
-  "name": "ride-from-here-backend",
+  "name": "citizone-backend",
   "version": "1.0.0",
-  "description": "Backend API for Ride From Here application",
+  "description": "Backend API for citizone application",
   "main": "server.js",
   "types": "module",
   "scripts": {
@@ -20,7 +20,7 @@
     "authentication",
     "api"
   ],
-  "author": "Your Name",
+  "author": "Vikas Singh Bisht",
   "type": "module",
   "license": "MIT",
   "dependencies": {
