@@ -7,6 +7,7 @@ import { generateTokenAndSetCookie } from "../utils/jwt.js";
 import { getMinutesFromNow } from "../utils/helper.js";
 import { comparePassword, hashPassword, isPasswordSame } from "../utils/password.js";
 import { sendOTPBySMS } from "../services/smsServices/smsServices.js";
+import admin from "../config/firebaseAdmin.js";
 
 /**
  * @desc    Register user using EMAIL
@@ -533,5 +534,59 @@ export const getCurrentUser = async (req, res) => {
   } catch (error) {
     console.error("Error in getCurrentUser controller:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const verifyFirebaseToken = async (req, res) => {
+  try {
+    const { firebaseToken } = req.body;
+
+    if (!firebaseToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Firebase token is required",
+      });
+    }
+
+    /**
+     * Verify token with Firebase
+     */
+    const decoded = await admin.auth().verifyIdToken(firebaseToken);
+
+    const phone = decoded.phone_number;
+
+    /**
+     * Find or create user
+     */
+    let user = await User.findOne({ MobileNumber: phone });
+
+    if (!user) {
+      user = await User.create({
+        MobileNumber: phone,
+        isPhoneVerified: true,
+      });
+    }
+
+    /**
+     * Generate JWT (your system)
+     */
+    generateTokenAndSetCookie(res, user._id, user.role);
+
+    return res.status(200).json({
+      success: true,
+      message: "User verified successfully",
+      data: {
+        phone,
+        userId: user._id,
+      },
+    });
+
+  } catch (error) {
+    console.error("Firebase Verify Error:", error);
+
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired Firebase token",
+    });
   }
 };
