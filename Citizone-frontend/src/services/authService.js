@@ -24,9 +24,8 @@ export const registerByEmail = async (data) => {
 export const loginByEmail = async (data) => {
   try {
     const response = await apiClient.post(AUTH_ENDPOINTS.LOGIN_EMAIL, data);
-    if (response.data.token) {
-      localStorage.setItem('userToken', response.data.token);
-    }
+    // Cookie is automatically set by the backend in httpOnly cookie
+    // No need to manually store in localStorage
     return response.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -55,9 +54,8 @@ export const mobileAuth = async (number) => {
 export const verifyOTP = async (verificationCode) => {
   try {
     const response = await apiClient.post(AUTH_ENDPOINTS.VERIFY_OTP, { verificationCode });
-    if (response.data.token) {
-      localStorage.setItem('userToken', response.data.token);
-    }
+    // Cookie is automatically set by the backend in httpOnly cookie
+    // No need to manually store in localStorage
     return response.data;
   } catch (error) {
     throw new Error(handleApiError(error));
@@ -99,9 +97,9 @@ export const resetPassword = async (data) => {
 export const logoutUser = async () => {
   try {
     await apiClient.post(AUTH_ENDPOINTS.LOGOUT);
-    localStorage.removeItem('userToken');
+    // Cookie is automatically cleared by the backend
   } catch (error) {
-    localStorage.removeItem('userToken');
+    // Even if the request fails, consider user logged out
     throw new Error(handleApiError(error));
   }
 };
@@ -127,9 +125,8 @@ export const getCurrentUser = async () => {
 export const verifyFirebaseToken = async (idToken) => {
   try {
     const response = await apiClient.post(AUTH_ENDPOINTS.FIREBASE_VERIFY, { idToken });
-    if (response.data.token) {
-      localStorage.setItem('userToken', response.data.token);
-    }
+    // Cookie is automatically set by the backend in httpOnly cookie
+    // No need to manually store in localStorage
     return response.data;
   } catch (error) {
     throw new Error(handleApiError(error));

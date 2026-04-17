@@ -11,6 +11,8 @@ const initialState = {
   otpEmail: null,
   otpMobile: null,
   isUserVerified: false,
+  authInitialized: false, // Track if auth check has been done
+  sessionExpiry: null, // Track when the current session expires
 };
 
 const authSlice = createSlice({
@@ -161,6 +163,38 @@ const authSlice = createSlice({
       state.otpEmail = null;
       state.otpMobile = null;
     },
+
+    // ============== INITIALIZE AUTH (Check cookie on app load) ==============
+    initAuthStart: (state) => {
+      state.isLoading = true;
+      state.error = null;
+    },
+
+    initAuthSuccess: (state, action) => {
+      state.isLoading = false;
+      state.user = action.payload.user;
+      state.role = action.payload.user?.role;
+      state.isAuthenticated = true;
+      state.isUserVerified = action.payload.user?.isUserVerified || false;
+      state.error = null;
+      state.authInitialized = true;
+    },
+
+    initAuthFailure: (state) => {
+      state.isLoading = false;
+      state.user = null;
+      state.token = null;
+      state.isAuthenticated = false;
+      state.role = null;
+      state.error = null;
+      state.authInitialized = true;
+    },
+
+    // ============== REFRESH TOKEN ==============
+    refreshToken: (state, action) => {
+      state.token = action.payload.token;
+      state.sessionExpiry = action.payload.expiresAt || action.payload.expiresIn ? new Date().getTime() + (action.payload.expiresIn * 1000) : null;
+    },
   },
 });
 
@@ -187,6 +221,10 @@ export const {
   setUser,
   clearError,
   clearOTP,
+  initAuthStart,
+  initAuthSuccess,
+  initAuthFailure,
+  refreshToken,
 } = authSlice.actions;
 
 export default authSlice.reducer;

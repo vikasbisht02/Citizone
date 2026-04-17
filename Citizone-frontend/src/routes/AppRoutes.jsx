@@ -1,5 +1,7 @@
-import React from 'react';
+/* eslint-disable no-unused-vars */
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   HomePage,
   LoginPage,
@@ -11,6 +13,40 @@ import {
   AdminDashboard,
 } from '../pages';
 import { ProtectedRoute, PublicRoute, UnrestrictedRoute, RoleBasedRoute } from './ProtectedRoute';
+import { initAuthStart, initAuthSuccess, initAuthFailure } from '../redux/slices/authSlice';
+import { getCurrentUser } from '../services/authService';
+import { LoadingSpinner } from '../components/Common';
+
+/**
+ * Initialize Auth Component - Checks if user is still authenticated via cookie
+ */
+const AuthInitializer = ({ children }) => {
+  const dispatch = useDispatch();
+  const authInitialized = useSelector(state => state.auth.authInitialized);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      dispatch(initAuthStart());
+      try {
+        const response = await getCurrentUser();
+        // Response is the user object directly
+        dispatch(initAuthSuccess({ user: response.data }));
+      } catch (error) {
+        // If error, user is not authenticated (cookie is invalid or expired)
+        dispatch(initAuthFailure());
+      }
+    };
+
+    initializeAuth();
+  }, [dispatch]);
+
+  // Wait until auth initialization is complete before rendering routes
+  if (!authInitialized) {
+    return <LoadingSpinner text="Loading..." />;
+  }
+
+  return children;
+};
 
 /**
  * App Routes Configuration with Role-Based Access
@@ -19,7 +55,8 @@ import { ProtectedRoute, PublicRoute, UnrestrictedRoute, RoleBasedRoute } from '
 const AppRoutes = () => {
   return (
     <Router>
-      <Routes>
+      <AuthInitializer>
+        <Routes>
         {/* ==================== PUBLIC ROUTES ==================== */}
         <Route path="/" element={<HomePage />} />
 
@@ -98,6 +135,7 @@ const AppRoutes = () => {
         {/* ==================== 404 CATCH ALL ==================== */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </AuthInitializer>
     </Router>
   );
 };

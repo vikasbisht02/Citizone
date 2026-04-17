@@ -27,7 +27,7 @@ const userAuthSlice = createSlice({
       state.error = null;
       
       // Set secure cookie with expiry
-      Cookies.set('userToken', action.payload.token, {
+      Cookies.set('citizoneCookie', action.payload.token, {
         expires: new Date(action.payload.expiresAt),
         secure: true,
         sameSite: 'strict'
@@ -48,7 +48,7 @@ const userAuthSlice = createSlice({
       state.error = null;
       
       // Remove cookie
-      Cookies.remove('userToken');
+      Cookies.remove('citizoneCookie');
     },
     clearError: (state) => {
       state.error = null;
@@ -63,14 +63,14 @@ const userAuthSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.sessionExpiry = null;
-        Cookies.remove('userToken');
+        Cookies.remove('citizoneCookie');
       }
     },
     refreshToken: (state, action) => {
       state.token = action.payload.token;
       state.sessionExpiry = action.payload.expiresAt;
       
-      Cookies.set('userToken', action.payload.token, {
+      Cookies.set('citizoneCookie', action.payload.token, {
         expires: new Date(action.payload.expiresAt),
         secure: true,
         sameSite: 'strict'

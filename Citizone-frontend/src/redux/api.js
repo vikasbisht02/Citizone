@@ -1,19 +1,19 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import Cookies from 'js-cookie';
-import { logout } from './slices/authSlice';
+import { logout, refreshToken } from './slices/authSlice';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_BASE_URL,
   credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
-    const token = getState().auth.token || Cookies.get('userToken');
+    const token = getState().auth.token || Cookies.get('citizoneCookie');
     
     // Check token expiry before adding to headers
     const sessionExpiry = getState().auth.sessionExpiry;
     const now = new Date().getTime();
     
     if (sessionExpiry && now > sessionExpiry) {
-      Cookies.remove('userToken');
+      Cookies.remove('citizoneCookie');
       return headers;
     }
     
