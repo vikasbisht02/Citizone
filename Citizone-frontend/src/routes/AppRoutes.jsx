@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -23,8 +23,13 @@ import { LoadingSpinner } from '../components/Common';
 const AuthInitializer = ({ children }) => {
   const dispatch = useDispatch();
   const authInitialized = useSelector(state => state.auth.authInitialized);
+  const initRef = useRef(false);
 
   useEffect(() => {
+    // Prevent double initialization in StrictMode (development)
+    if (initRef.current) return;
+    initRef.current = true;
+
     const initializeAuth = async () => {
       dispatch(initAuthStart());
       try {
