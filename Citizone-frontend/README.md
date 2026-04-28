@@ -1,53 +1,152 @@
-# Citizone Frontend - Complete Documentation
+# Citizone Frontend
 
-**Status**: ✅ **PRODUCTION READY** (Pending Backend Integration Testing)  
-**Version**: 1.0.0  
-**Last Updated**: 2024
+A modern, responsive React application for the Citizone platform. Provides user and admin interfaces for reporting and managing citizen complaints and city issues.
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
-1. [Overview](#overview)
-2. [Quick Start](#quick-start)
-3. [Features](#features)
-4. [Project Structure](#project-structure)
-5. [Technology Stack](#technology-stack)
-6. [Authentication Flows](#authentication-flows)
-7. [API Integration](#api-integration)
-8. [Development](#development)
-9. [Documentation](#documentation)
-10. [Support](#support)
-
----
-
-## 🎯 Overview
-
-**Citizone Frontend** is a professional React-based authentication system that integrates seamlessly with the Citizone backend. It provides complete authentication flows including:
-
-- 📧 Email-based registration and login
-- 📱 Mobile number authentication with OTP
-- 🔐 Secure password reset functionality
-- 👥 Role-based access control (User, Admin, SuperAdmin)
-- 🎨 Modern, responsive UI with Tailwind CSS
-
-### Key Highlights
-
-✅ **Production Ready** - Complete auth system ready for deployment  
-✅ **Secure** - httpOnly cookies, JWT authentication, XSS protection  
-✅ **Responsive** - Mobile-friendly design with Tailwind CSS  
-✅ **Type Safe** - Proper error handling and validation  
-✅ **Scalable** - Redux for state, modular component structure  
-✅ **Well Documented** - Comprehensive guides and architecture docs  
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Environment Setup](#environment-setup)
+- [Available Scripts](#available-scripts)
+- [Project Structure](#project-structure)
+- [Page Routes](#page-routes)
+- [State Management](#state-management)
+- [Components](#components)
+- [Styling](#styling)
+- [API Integration](#api-integration)
+- [Custom Hooks](#custom-hooks)
+- [Best Practices](#best-practices)
+- [Contributing](#contributing)
 
 ---
 
-## 🚀 Quick Start
+## Features
 
-### Prerequisites
-- Node.js v16+ (`node --version`)
-- npm v8+ (`npm --version`)
-- Backend running on `http://localhost:5000`
+✨ **User Features**
+- Email & mobile-based registration and login
+- Password management (forgot/reset)
+- Email verification with OTP
+- User dashboard
+- Submit and track complaints
+- Real-time status updates
+- Profile management
+
+✨ **Admin Features**
+- Admin dashboard with content moderation
+- User management and filtering
+- Complaint/Account actions
+- Activity analytics and reporting
+- Admin-only access control
+
+✨ **SuperAdmin Features**
+- SuperAdmin dashboard with full system control
+- Admin account management
+- System-wide settings configuration
+- Complete analytics and audit logs
+- User and admin management
+- SuperAdmin-only system control
+
+✨ **UI/UX**
+- Responsive design (mobile-first)
+- Dark mode support
+- Smooth animations & transitions
+- Loading spinners & feedback
+- Toast notifications
+- Form validation
+- Role-based page rendering
+
+---
+
+## 📍 Role-Based Routing
+
+The application implements strict role-based routing with separate dashboards:
+
+| User Role | Dashboard Path | Features |
+|-----------|----------------|----------|
+| **user** | `/dashboard/user` | Profile, complaints, tracking |
+| **admin** | `/dashboard/admin` | Moderation, user management, reports |
+| **superadmin** | `/dashboard/superadmin` | System control, admin management, settings |
+
+**Smart Redirects:**
+- `/login` → After login, redirects to role-specific dashboard automatically
+- `/dashboard` → Automatically redirects to correct dashboard based on user role
+- Attempting to access wrong role's dashboard → Redirects to user's actual dashboard
+- All role-based routes use `RoleBasedRoute` guard component
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|----------|
+| **Framework** | React 19+ |
+| **Build Tool** | Vite |
+| **Styling** | Tailwind CSS 4 |
+| **State Management** | Redux Toolkit |
+| **API Management** | RTK Query (replaces Axios) |
+| **Routing** | React Router v7 |
+| **Charts** | Recharts |
+| **Utilities** | JS-Cookie |
+| **Linting** | ESLint |
+| **Package Manager** | npm |
+
+**RTK Query Features:**
+- Automatic data caching with tag-based invalidation
+- Built-in loading/error states in Redux store
+- Automatic refetching on network recovery
+- DevTools for debugging
+
+---
+
+## Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- Git
+
+---
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/vikasbisht02/citizone.git
+cd Citizone-frontend
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Environment Setup
+
+Create a `.env` file in the root directory:
+
+```env
+# API Configuration (RTK Query)
+VITE_API_BASE_URL=http://localhost:5000
+
+# Application Settings
+VITE_APP_TITLE=Citizone - Ride From Here
+VITE_ENVIRONMENT=development
+VITE_COOKIE_EXPIRE_TIME=86400000
+VITE_SESSION_TIMEOUT=1800000
+
+# Firebase (Optional - for authentication)
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_firebase_app_id
+```
+
+**Note:** RTK Query automatically handles all API calls through the configured `VITE_API_BASE_URL`. No separate axios configuration needed!
 
 ### Setup (5 minutes)
 
@@ -114,22 +213,89 @@ For detailed setup, see [QUICK_START.md](./QUICK_START.md)
 
 ## 📁 Project Structure
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed structure documentation.
-
-Quick overview:
 ```
 src/
-├── components/        # React components
-│   ├── Auth/         # Auth-specific components
-│   └── Common/       # Reusable UI components
-├── pages/            # Page components
-├── routes/           # Route configuration
-├── redux/            # State management
-├── services/         # API service layer
-├── constants/        # Constants
-├── utils/            # Utilities
-└── hooks/            # Custom hooks
+├── components/            # React components
+│   ├── Auth/             # Authentication components
+│   │   ├── EmailLoginForm.jsx
+│   │   ├── LoginForm.jsx
+│   │   ├── RegisterForm.jsx
+│   │   ├── MobileAuthForm.jsx
+│   │   ├── OTPVerificationForm.jsx
+│   │   └── ...
+│   └── Common/           # Reusable UI components
+│       ├── Button.jsx
+│       ├── Input.jsx
+│       ├── Card.jsx
+│       └── ...
+├── pages/                # Page components
+│   ├── LoginPage.jsx
+│   ├── UserDashboard.jsx
+│   ├── AdminDashboard.jsx
+│   ├── SuperAdminDashboard.jsx
+│   └── ...
+├── routes/               # Route configuration
+│   ├── AppRoutes.jsx     # Main routes with role-based redirects
+│   └── ProtectedRoute.jsx # Route guards
+├── redux/                # State management
+│   ├── api.js            # RTK Query endpoints
+│   ├── store.js          # Redux store configuration
+│   └── slices/           # Redux reducers
+│       └── authSlice.js
+├── constants/            # Constants
+│   └── apiEndpoints.js
+├── utils/                # Utilities
+│   ├── validators.js
+│   ├── errorHandler.js
+│   └── localStorage.js
+└── hooks/                # Custom hooks
+    ├── useAuth.js
+    ├── useForm.js
+    └── ...
 ```
+
+---
+
+## 🔌 API Integration with RTK Query
+
+The application uses **RTK Query** for all API calls:
+
+```javascript
+// src/redux/api.js
+export const apiSlice = createApi({
+  reducerPath: 'api',
+  baseQuery: baseQueryWithReauth,
+  tagTypes: ['User', 'Profile'],
+  endpoints: (builder) => ({
+    login: builder.mutation({ /* ... */ }),
+    register: builder.mutation({ /* ... */ }),
+    getCurrentUser: builder.query({ /* ... */ }),
+    // ... more endpoints
+  }),
+});
+
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+  useGetCurrentUserQuery,
+  // ... more hooks
+} = apiSlice;
+```
+
+**Usage in Components:**
+```jsx
+const [login, { isLoading, error }] = useLoginMutation();
+const { data: user, isLoading: isFetchingUser } = useGetCurrentUserQuery();
+
+// Automatic caching, loading states, and error handling!
+```
+
+**Key Benefits:**
+- ✅ Automatic response caching with tag-based invalidation
+- ✅ Built-in loading/error states in Redux
+- ✅ Automatic refetching on network recovery
+- ✅ Zero-boilerplate API integration
+- ✅ TypeScript support ready
 
 ---
 
@@ -138,7 +304,7 @@ src/
 - **React** 19.1.0 - UI library
 - **React Router** 7.6.3 - Client-side routing
 - **Redux Toolkit** 2.8.2 - State management
-- **Axios** 1.7.0 - HTTP client
+- **RTK Query** - Advanced data fetching (replaces Axios)
 - **Tailwind CSS** 4.1.11 - Styling
 - **Vite** 7.0.0 - Build tool
 
