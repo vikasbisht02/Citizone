@@ -17,7 +17,6 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-
     password: String,
 
     age: Number,
@@ -27,6 +26,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    
+    isPhoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    
     verificationCode: String,
     verificationCodeExpireAt: Date,
 

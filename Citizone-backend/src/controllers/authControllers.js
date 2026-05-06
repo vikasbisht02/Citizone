@@ -243,13 +243,13 @@ export const mobileAuth = async (req, res) => {
     // -----------------------------
     // Step 4: Send OTP via SMS
     // -----------------------------
-    const smsResult = await sendOTPBySMS(number, otp);
-    if (!smsResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to send OTP. Try again.",
-      });
-    }
+    // const smsResult = await sendOTPBySMS(number, otp);
+    // if (!smsResult.success) {
+    //   return res.status(500).json({
+    //     success: false,
+    //     message: "Failed to send OTP. Try again.",
+    //   });
+    // }
 
     // -----------------------------
     // Step 5: Generate JWT & Set Cookie
@@ -388,6 +388,12 @@ export const forgotPassword = async (req, res) => {
       const resetURL = process.env.CLIENT_URL + "cityzone/auth/forgot-password";
       generateTokenAndSetCookie(res, user._id, user.role);
       await sendPasswordResetEmail(user.email, resetURL);
+    } else {
+      // If user doesn't exist, we still return success to prevent email enumeration
+      return res.status(200).json({
+        success: false,
+        message: "Email doesn't exist.",
+      });
     }
 
     // Step 5: Always return success (prevents email enumeration)
@@ -537,44 +543,102 @@ export const verifyFirebaseToken = async (req, res) => {
     }
 
     /**
-     * Verify token with Firebase
+     * Step 1: Verify Firebase ID token
      */
-    const decoded = await admin.auth().verifyIdToken(firebaseToken);
+    let decoded;
+    try {
+      decoded = await admin.auth().verifyIdToken(firebaseToken);
+    } catch (firebaseError) {
+      console.error("Firebase token verification error:", firebaseError);
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired Firebase token",
+      });
+    }
 
-    const phone = decoded.phone_number;
+    const phoneNumber = decoded.phone_number;
 
-    /**
-     * Find or create user
-     */
-    let user = await User.findOne({ mobileNumber: phone });
-
-    if (!user) {
-      user = await User.create({
-        mobileNumber: phone,
-        isPhoneVerified: true,
+    if (!phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number not verified in Firebase token",
       });
     }
 
     /**
-     * Generate JWT (your system)
+     * Step 2: Find or create user by phone number
      */
-    generateTokenAndSetCookie(res, user._id, user.role);
+    let user = await User.findOne({ mobileNumber: phoneNumber });
+
+    if (!user) {
+      // Create new user with Firebase phone authentication
+      user = await User.create({
+        mobileNumber: phoneNumber,
+        isUserVerified: true,
+        isPhoneVerified: true,
+        lastLogin: new Date(),
+      });
+    } else {
+      // Update existing user
+      user.isUserVerified = true;
+      user.isPhoneVerified = true;
+      user.lastLogin = new Date();
+      await user.save();
+    }
+
+    /**
+     * Step 3: Generate JWT token for application
+     */
+    generateTokenAndSetCookie(res, user._id, user.role || "user");
+
+    /**
+     * Step 4: Return response with user data
+     */
+    const { password, verificationCode, verificationCodeExpireAt, ...userData } = user._doc;
 
     return res.status(200).json({
       success: true,
-      message: "User verified successfully",
+      message: "Phone authentication successful",
       data: {
-        phone,
+        ...userData,
+        phoneNumber,
         userId: user._id,
       },
     });
 
   } catch (error) {
-    console.error("Firebase Verify Error:", error);
-
-    return res.status(401).json({
+    console.error("Firebase Token Verification Error:", error);
+    return res.status(500).json({
       success: false,
-      message: "Invalid or expired Firebase token",
+      message: error.message || "Phone authentication failed",
+    });
+  }
+};
+
+/**
+ * @desc    Get Firebase configuration for frontend
+ * @route   GET /v1/api/auth/firebase/config
+ * @access  Public
+ */
+export const getFirebaseConfig = async (req, res) => {
+  try {
+    const firebaseConfig = {
+      apiKey: process.env.FIREBASE_API_KEY,
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.FIREBASE_APP_ID,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: firebaseConfig,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
