@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUserByEmail, loginUserByEmail, mobileAuth, verifyOTP, forgotPassword, resetPassword, logoutUser, getCurrentUser, verifyFirebaseToken } from "../controllers/authControllers.js";
+import { registerUserByEmail, loginUserByEmail, mobileAuth, verifyOTP, forgotPassword, resetPassword, logoutUser, getCurrentUser, verifyFirebaseToken, getFirebaseConfig } from "../controllers/authControllers.js";
 import { protectUserRoute } from "../middleware/authUserMiddleware.js";
 
 const router = express.Router();
@@ -32,5 +32,8 @@ router.post(
 
 // Get firebase access token
 router.post("/firebase/verify", verifyFirebaseToken);
+
+// Get Firebase config for frontend
+router.get("/firebase/config", getFirebaseConfig);
 
 export default router;
