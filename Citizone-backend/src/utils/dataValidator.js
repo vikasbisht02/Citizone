@@ -8,5 +8,5 @@ export const emailValidator = (email) => {
 
 export const isValidNumber = async (number) => {
   if (!number) return false;
-  return !/^\d{10}$/.test(number)
+  return /^\d{10}$/.test(number)
 }
