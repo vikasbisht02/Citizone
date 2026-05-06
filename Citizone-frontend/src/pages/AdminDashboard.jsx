@@ -150,11 +150,6 @@ const AdminDashboard = () => {
           </div>
         </Card>
       </div>
-    </MainLayout>
-  );
-};
-        </Card>
-
         {/* Super Admin Features */}
         {role === 'superadmin' && (
           <>
@@ -212,7 +207,6 @@ const AdminDashboard = () => {
             </div>
           </div>
         </Card>
-      </div>
     </MainLayout>
   );
 };

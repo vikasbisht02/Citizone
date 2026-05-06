@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { Button, Input, Alert, LoadingSpinner } from '../Common';
-import { useVerifyOTPMutation } from '../../redux/api';
+import { useVerifyOTPMutation, useVerifyFirebaseTokenMutation } from '../../redux/api';
+import { verifyPhoneOTP, sendPhoneOTP } from '../../services/firebasePhoneAuth';
 import {
   verifyOTPStart,
   verifyOTPSuccess,
@@ -10,6 +11,7 @@ import {
 
 /**
  * OTP Verification Form
+ * Supports both email and Firebase phone OTP verification
  * @param {Object} props - Component props
  * @param {string} props.identifier - Email or mobile number
  * @param {string} props.type - 'email' or 'mobile'
@@ -20,6 +22,7 @@ import {
 const OTPVerificationForm = ({ identifier, type = 'email', onSuccess, onResend }) => {
   const dispatch = useDispatch();
   const [verifyOTPMutation] = useVerifyOTPMutation();
+  const [verifyFirebaseTokenMutation] = useVerifyFirebaseTokenMutation();
   const [otp, setOtp] = useState('');
   const [apiError, setApiError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,14 +57,41 @@ const OTPVerificationForm = ({ identifier, type = 'email', onSuccess, onResend }
     try {
       setIsSubmitting(true);
       dispatch(verifyOTPStart());
-      const response = await verifyOTPMutation(otp).unwrap();
-      dispatch(
-        verifyOTPSuccess({
-          user: response.data,
-          token: response.data?.token,
-          role: response.data?.role,
-        })
-      );
+
+      let response;
+
+      if (type === 'mobile') {
+        // Firebase phone OTP verification
+        try {
+          const { firebaseToken, phoneNumber } = await verifyPhoneOTP(otp);
+          
+          // Send Firebase token to backend for verification
+          response = await verifyFirebaseTokenMutation({ 
+            firebaseToken 
+          }).unwrap();
+          
+          dispatch(
+            verifyOTPSuccess({
+              user: response.data,
+              token: response.data?.token,
+              role: response.data?.role,
+            })
+          );
+        } catch (firebaseError) {
+          throw new Error('Invalid OTP. Please try again.');
+        }
+      } else {
+        // Email OTP verification (existing logic)
+        response = await verifyOTPMutation(otp).unwrap();
+        dispatch(
+          verifyOTPSuccess({
+            user: response.data,
+            token: response.data?.token,
+            role: response.data?.role,
+          })
+        );
+      }
+
       setApiError('');
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -73,14 +103,25 @@ const OTPVerificationForm = ({ identifier, type = 'email', onSuccess, onResend }
     }
   };
 
-  const handleResend = () => {
-    if (onResend) {
-      onResend();
+  const handleResend = async () => {
+    try {
+      if (type === 'mobile') {
+        // Resend Firebase phone OTP
+        const phoneNumber = `+91${identifier}`;
+        await sendPhoneOTP(phoneNumber);
+      }
+      
+      if (onResend) {
+        onResend();
+      }
+      
+      setTimeLeft(300);
+      setCanResend(false);
+      setOtp('');
+      setApiError('');
+    } catch (error) {
+      setApiError('Failed to resend OTP. Please try again.');
     }
-    setTimeLeft(300);
-    setCanResend(false);
-    setOtp('');
-    setApiError('');
   };
 
   const formatTime = (seconds) => {
@@ -98,6 +139,7 @@ const OTPVerificationForm = ({ identifier, type = 'email', onSuccess, onResend }
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Verify {capitalize(type)}</h3>
         <p className="text-gray-600 text-sm">
           We've sent a 6-digit OTP to <strong>{displayIdentifier}</strong>
+          {type === 'mobile' && ' via Firebase'}
         </p>
       </div>
 

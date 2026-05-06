@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useForm } from '../../hooks';
 import { Button, Input, Alert } from '../Common';
-import { useMobileAuthMutation } from '../../redux/api';
+import { sendPhoneOTP } from '../../services/firebasePhoneAuth';
 import {
   mobileAuthStart,
   mobileAuthSent,
@@ -11,6 +11,7 @@ import {
 
 /**
  * Mobile Number Authentication Form
+ * Handles phone authentication using Firebase
  * @param {Object} props - Component props
  * @param {Function} props.onOTPSent - Called when OTP is sent
  * @param {Function} props.onToggleEmailAuth - Toggle to email auth
@@ -18,8 +19,24 @@ import {
  */
 const MobileAuthForm = ({ onOTPSent, onToggleEmailAuth }) => {
   const dispatch = useDispatch();
-  const [mobileAuthMutation] = useMobileAuthMutation();
   const [apiError, setApiError] = useState('');
+  const [recaptchaReady, setRecaptchaReady] = useState(false);
+
+  useEffect(() => {
+    // Load reCAPTCHA script
+    const script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/firebasejs/ui/6.0.0/firebase-ui-auth.js';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setRecaptchaReady(true);
+    document.head.appendChild(script);
+
+    return () => {
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, []);
 
   const { values, errors, handleChange, handleSubmit, isSubmitting } = useForm(
     { mobileNumber: '' },
@@ -33,7 +50,13 @@ const MobileAuthForm = ({ onOTPSent, onToggleEmailAuth }) => {
 
       try {
         dispatch(mobileAuthStart());
-        const response = await mobileAuthMutation(number).unwrap();
+        
+        // Format phone number with country code
+        const phoneNumber = `+91${number}`;
+        
+        // Send OTP via Firebase
+        await sendPhoneOTP(phoneNumber);
+        
         dispatch(
           mobileAuthSent({
             mobileNumber: number,
@@ -42,14 +65,18 @@ const MobileAuthForm = ({ onOTPSent, onToggleEmailAuth }) => {
         setApiError('');
         if (onOTPSent) onOTPSent(number);
       } catch (error) {
-        dispatch(mobileAuthFailure(error.message || 'Mobile auth failed'));
-        setApiError(error.message || 'Mobile auth failed');
+        const errorMessage = error.message || 'Failed to send OTP';
+        dispatch(mobileAuthFailure(errorMessage));
+        setApiError(errorMessage);
       }
     }
   );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* reCAPTCHA container */}
+      <div id="recaptcha-container" className="mb-4"></div>
+
       {apiError && (
         <Alert type="error" closable onClose={() => setApiError('')}>
           {apiError}
@@ -75,7 +102,7 @@ const MobileAuthForm = ({ onOTPSent, onToggleEmailAuth }) => {
           />
         </div>
         <p className="text-gray-500 text-sm mt-2">
-          Enter your 10-digit mobile number. We'll send you an OTP.
+          Enter your 10-digit mobile number. We'll send you an OTP via Firebase.
         </p>
       </div>
 
@@ -84,6 +111,7 @@ const MobileAuthForm = ({ onOTPSent, onToggleEmailAuth }) => {
         variant="primary"
         size="md"
         isLoading={isSubmitting}
+        disabled={!recaptchaReady || isSubmitting}
         className="w-full"
       >
         {isSubmitting ? 'Sending OTP...' : 'Send OTP'}
